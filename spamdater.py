@@ -12,51 +12,65 @@ print("SpamDater")
 
 #sub for single file parsing
 #Returns a dictionary of emails with date
-def parsefile(filename):
+def parsefile(filename, verbose):
   print("parsing", filename)
   resultshash = {}
   fh = open(filename,"r")
   emailset = set()
-  datehash = {}
+  gooddate = ''
+  okdate = ''
   for line in fh:
     regex = '[-\w_.+]+@jumpstation\.co\.uk'
     matches = re.findall(regex,line, re.IGNORECASE)
     for match in matches:
-      #print(line,match)
+      if verbose: 
+        print(line,match)
       # add to set as unique string
       emailset.add(match)
-    regex = 'Date:\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun)?,?\s?(\d{1,2})\s(\w{3})\s(\d{4})'
+    baseregex = '(Mon|Tue|Wed|Thu|Fri|Sat|Sun)?,?\s?[^0-9](\d{1,2})(-|\s)([A-Za-z]{3})(-|\s)(\d{4})[^0-9]'
+    regex = 'Date:\s+' + baseregex
     match = re.search(regex,line)
     if match:
       day = paddate(str(match.group(2)))
-      month3l = match.group(3)
-      year = match.group(4)
+      month3l = match.group(4)
+      year = match.group(6)
       month = paddate(str(getmonth(month3l)))
       datestr = str(year) + '-' + str(month) + '-' + str(day)
-      #print(datestr)
-      datehash[datestr]='Best'
+      if verbose: 
+        print('+', datestr)
+      if not len(gooddate):
+        gooddate = datestr
     else:
-      regex = '(Mon|Tue|Wed|Thu|Fri|Sat|Sun)?,?\s?(\d{1,2})\s(\w{3})\s(\d{4})'
-      match = re.search(regex,line)
+      match = re.search(baseregex,line)
       if match:
         day = paddate(str(match.group(2)))
-        month3l = match.group(3)
-        year = match.group(4)
+        month3l = match.group(4)
+        year = match.group(6)
         month = paddate(str(getmonth(month3l)))
         datestr = str(year) + '-' + str(month) + '-' + str(day)
-        #print("-",year,month,day)
-        if not datehash.has_key(datestr):
-          datehash[datestr]='OK'
+        if verbose: 
+          print("-",year,month,day)
+        okdate = datestr
   fh.close()
   #print(datehash)
   for email in emailset:
-    resultshash[email] = datestr
+    resultshash[email] = getbestdate(gooddate, okdate) 
   return resultshash
+
+#get best date
+def getbestdate(good, ok):
+  if len(good):
+    return good
+  else:
+    return ok
 
 #convert three letter months to number
 def getmonth(name):
   months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return(1+months.index(name))
+  if name.title() in months:
+    return(1+months.index(name.title())) # title() makes 'Feb','feb','FEB' all 'Feb'
+  else:
+    return('XX')
 
 #pad single digits to double, must be a built in way
 def paddate(numstr):
@@ -66,9 +80,9 @@ def paddate(numstr):
     return numstr
 
 #sub for list of files
-def parsefiles(pattern, log):
+def parsefiles(pattern, log, verbose):
   for filename in glob.glob(pattern):
-    logresults(parsefile(filename), log)
+    logresults(parsefile(filename, verbose), log)
 
 #log results of parsing
 def logresults(results, filename):
@@ -112,9 +126,10 @@ for opt, arg in opts:
 
 if verbose:
   print('Filename', filename)
+  print('Glob pattern', globpattern)
   print('Log file', log)
 
 if len(filename):
-  logresults(parsefile(filename), log)
+  logresults(parsefile(filename, verbose), log)
 elif len(globpattern):
-  parsefiles(globpattern, log)  
+  parsefiles(globpattern, log, verbose)  
