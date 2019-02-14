@@ -5,7 +5,7 @@
 #
 # Code smells due to lack of error checking, but is trying to work on highly structured data
 
-import re
+import re, sys, getopt
 
 print("SpamDater")
 
@@ -72,10 +72,43 @@ def getfilenames(pattern):
 
 #log results of parsing
 def logresults(results, filename):
-  fh = open(filename, 'a')
+  fh = sys.stdout
+  if len(filename):
+    fh = open(filename, 'a')
   for result in results:
     fh.write('"' + result + '", "' + results[result] + '"\n')
-  fh.close()
+  if len(filename):
+    fh.close()
 
+#getfilenames("")
+def usage():
+  print('Usage: --file="file in" --log="file to log to"')
 
-getfilenames("")
+try:
+  opts, args = getopt.getopt(sys.argv[1:], 'f:l:hv', ['file=', 'log=', 'help', 'verbose'])
+except getopt.GetoptError:
+  usage()
+  sys.exit(2)
+verbose=False
+log=''
+filename=''
+for opt, arg in opts:
+  if opt in ('-h', '--help'):
+    usage()
+    sys.exit(2)
+  elif opt in ('-f', '--file'):
+    filename = arg
+  elif opt in ('-l', '--log'):
+    log = arg
+  elif opt in ('-v', '--verbose'):
+    verbose=True
+  else:
+    usage()
+    sys.exit(2)
+
+if verbose:
+  print('Filename', filename)
+  print('Log file', log)
+
+if len(filename):
+  logresults(parsefile(filename), log)
