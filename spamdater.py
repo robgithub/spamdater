@@ -6,6 +6,7 @@
 # Code smells due to lack of error checking, but is trying to work on highly structured data
 
 import re, sys, getopt
+import glob
 
 print("SpamDater")
 
@@ -65,10 +66,9 @@ def paddate(numstr):
     return numstr
 
 #sub for list of files
-def getfilenames(pattern):
-  fn = 'test.dat'
-  logresults(parsefile("/home/rednuht/Mail/Black list/spamassassin/23458"), fn)
-  logresults(parsefile("/home/rednuht/Mail/Black list/spamassassin/29152"), fn)
+def parsefiles(pattern, log):
+  for filename in glob.glob(pattern):
+    logresults(parsefile(filename), log)
 
 #log results of parsing
 def logresults(results, filename):
@@ -83,15 +83,17 @@ def logresults(results, filename):
 #getfilenames("")
 def usage():
   print('Usage: --file="file in" --log="file to log to"')
+  print('Usage: --directory="path/glob*" --log="file to log to"')
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], 'f:l:hv', ['file=', 'log=', 'help', 'verbose'])
+  opts, args = getopt.getopt(sys.argv[1:], 'f:l:d:hv', ['directory=', 'file=', 'log=', 'help', 'verbose'])
 except getopt.GetoptError:
   usage()
   sys.exit(2)
 verbose=False
 log=''
 filename=''
+globpattern=''
 for opt, arg in opts:
   if opt in ('-h', '--help'):
     usage()
@@ -100,6 +102,8 @@ for opt, arg in opts:
     filename = arg
   elif opt in ('-l', '--log'):
     log = arg
+  elif opt in ('-d', '--directory'):
+    globpattern = arg
   elif opt in ('-v', '--verbose'):
     verbose=True
   else:
@@ -112,3 +116,5 @@ if verbose:
 
 if len(filename):
   logresults(parsefile(filename), log)
+elif len(globpattern):
+  parsefiles(globpattern, log)  
